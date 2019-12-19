@@ -1433,6 +1433,7 @@ void StdFace_Proj(struct StdIntList *StdI)
   free(Sym);
   free(Anti);
 }/*void StdFace_Proj(struct StdIntList *StdI)*/
+
 /**
 @brief Initialize sub Cell
 @author Mitsuaki Kawamura (The University of Tokyo)
@@ -1820,4 +1821,89 @@ void PrintJastrow(struct StdIntList *StdI) {
   for (isite = 0; isite < StdI->nsite; isite++) free(Jastrow[isite]);
   free(Jastrow);
 }/*void PrintJastrow*/
+#endif
+
+#if defined(_UHF)
+/**
+@brief Initialize sub Cell
+@author Mitsuaki Kawamura (The University of Tokyo)
+*/
+void StdFace_InitSiteSub(struct StdIntList *StdI)
+{
+  int ii, jj, kk, prod;
+  /**@brief
+  (1) check Input parameters
+  */
+  if ((StdI->Lsub != StdI->NaN_i || StdI->Wsub != StdI->NaN_i || StdI->Hsub != StdI->NaN_i)
+    && (StdI->boxsub[0][0] != StdI->NaN_i || StdI->boxsub[0][1] != StdI->NaN_i || StdI->boxsub[0][2] != StdI->NaN_i ||
+        StdI->boxsub[1][0] != StdI->NaN_i || StdI->boxsub[1][1] != StdI->NaN_i || StdI->boxsub[1][2] != StdI->NaN_i ||
+        StdI->boxsub[2][0] != StdI->NaN_i || StdI->boxsub[2][1] != StdI->NaN_i || StdI->boxsub[2][2] != StdI->NaN_i))
+  {
+    fprintf(stdout, "\nERROR ! (Lsub, Wsub, Hsub) and (a0Wsub, ..., a2Hsub) conflict !\n\n");
+    StdFace_exit(-1);
+  }
+  else if (StdI->Wsub != StdI->NaN_i || StdI->Lsub != StdI->NaN_i || StdI->Hsub != StdI->NaN_i) {
+    StdFace_PrintVal_i("Lsub", &StdI->Lsub, 1);
+    StdFace_PrintVal_i("Wsub", &StdI->Wsub, 1);
+    StdFace_PrintVal_i("Hsub", &StdI->Hsub, 1);
+    for (ii = 0; ii < 3; ii++) for (jj = 0; jj < 3; jj++)
+      StdI->boxsub[ii][jj] = 0;
+    StdI->boxsub[0][0] = StdI->Wsub;
+    StdI->boxsub[1][1] = StdI->Lsub;
+    StdI->boxsub[2][2] = StdI->Hsub;
+  }
+  else {
+    StdFace_PrintVal_i("a0Wsub", &StdI->boxsub[0][0], StdI->box[0][0]);
+    StdFace_PrintVal_i("a0Lsub", &StdI->boxsub[0][1], StdI->box[0][1]);
+    StdFace_PrintVal_i("a0Hsub", &StdI->boxsub[0][2], StdI->box[0][2]);
+    StdFace_PrintVal_i("a1Wsub", &StdI->boxsub[1][0], StdI->box[1][0]);
+    StdFace_PrintVal_i("a1Lsub", &StdI->boxsub[1][1], StdI->box[1][1]);
+    StdFace_PrintVal_i("a1Hsub", &StdI->boxsub[1][2], StdI->box[1][2]);
+    StdFace_PrintVal_i("a2Wsub", &StdI->boxsub[2][0], StdI->box[2][0]);
+    StdFace_PrintVal_i("a2Lsub", &StdI->boxsub[2][1], StdI->box[2][1]);
+    StdFace_PrintVal_i("a2Hsub", &StdI->boxsub[2][2], StdI->box[2][2]);
+  }
+  /**@brief
+  (2) Calculate reciprocal lattice vectors (times NCellsub)
+  */
+  StdI->NCellsub = 0;
+  for (ii = 0; ii < 3; ii++) {
+    StdI->NCellsub += StdI->boxsub[0][ii]
+                    * StdI->boxsub[1][(ii + 1) % 3]
+                    * StdI->boxsub[2][(ii + 2) % 3]
+                    - StdI->boxsub[0][ii]
+                    * StdI->boxsub[1][(ii + 2) % 3]
+                    * StdI->boxsub[2][(ii + 1) % 3];
+  }
+  printf("         Number of Cell in the sublattice: %d\n", abs(StdI->NCellsub));
+  if (StdI->NCellsub == 0) {
+    StdFace_exit(-1);
+  }
+
+  for (ii = 0; ii < 3; ii++) {
+    for (jj = 0; jj < 3; jj++) {
+      StdI->rboxsub[ii][jj] = StdI->boxsub[(ii + 1) % 3][(jj + 1) % 3] * StdI->boxsub[(ii + 2) % 3][(jj + 2) % 3]
+                            - StdI->boxsub[(ii + 1) % 3][(jj + 2) % 3] * StdI->boxsub[(ii + 2) % 3][(jj + 1) % 3];
+    }
+  }
+  if (StdI->NCellsub < 0) {
+    for (ii = 0; ii < 3; ii++)
+      for (jj = 0; jj < 3; jj++)
+        StdI->rboxsub[ii][jj] *= -1;
+    StdI->NCellsub *= -1;
+  }/*if (StdI->NCell < 0)*/
+  /**@brief
+  (4) Check the sublattice is commensurate or not
+  */
+  for (ii = 0; ii < 3; ii++) {
+    for (jj = 0; jj < 3; jj++) {
+      prod = 0.0;
+      for (kk = 0; kk < 3; kk++) prod += StdI->rboxsub[ii][kk] * (double)StdI->box[jj][kk];
+      if (prod % StdI->NCellsub != 0) {
+        printf("\n ERROR ! Sublattice is INCOMMENSURATE !\n\n");
+        StdFace_exit(-1);
+      }/*if (prod % StdI->NCellsub != 0)*/
+    }
+  }
+}/*void StdFace_InitSiteSub*/
 #endif

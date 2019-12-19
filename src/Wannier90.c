@@ -33,7 +33,7 @@ void _calc_inverse_matrix(double cutoff_Rvec[][3], double inverse_matrix[][3]) {
   int i, j;
   for (i = 0; i < 3; i++) {
     for (j = 0; j < 3; j++) {
-      NMatrix[i][j] = cutoff_Rvec[i][j];
+      NMatrix[i][j] = (double)cutoff_Rvec[i][j];
     }
   }
 
@@ -75,6 +75,19 @@ int _check_in_box(int *rvec, double inverse_matrix[][3])
 
   return (fabs(judge_vec[0])<= 1 && fabs(judge_vec[1])<= 1 && fabs(judge_vec[2])<= 1);
 }
+
+void _get_index(int *rvec, double inverse_matrix[][3], int *nvec)
+{
+  double judge_vec[3]={};
+  int i, j;
+  for (i =0; i<3; i++) {
+    for (j = 0; j < 3; j++) {
+      judge_vec[i] += rvec[j]*inverse_matrix[j][i] ;
+    }
+    nvec[i] = (int)judge_vec[i];
+  }
+}
+
 
 /**
 @brief Read Geometry file for wannier90
@@ -977,14 +990,40 @@ void StdFace_Wannier90(
   fprintf(fp, "========site nx ny nz norb====== \n");
   fprintf(fp, "======================== \n");
 
-  int nx, ny, nz;
+  int idx = 0, jdx = 0;
+  int nvec[3] = {};
+  int Nvec[3] = {};
+  double inverse_rvec[3][3] = {{},{}};
+  double boxsub[3][3]={{},{}};
+  int iflg_sub = 0;
+
+  //cast from int to double
+  StdFace_InitSiteSub(StdI);
+  if (StdI->boxsub[0][0] != StdI->NaN_i) {
+    iflg_sub = 1;
+    for (idx = 0; idx < 3; idx++) {
+      for (jdx = 0; jdx < 3; jdx++) {
+        boxsub[idx][jdx] = StdI->boxsub[idx][jdx];
+      }
+    }
+  }
+
   for (kCell = 0 ; kCell < StdI->NCell; kCell++) {
-    nx = StdI->Cell[kCell][0];
-    ny = StdI->Cell[kCell][1];
-    nz = StdI->Cell[kCell][2];
+    for (idx = 0; idx < 3; idx ++){
+      nvec[idx] = StdI->Cell[kCell][idx];
+    }
+    if(iflg_sub == 1) {
+      _calc_inverse_matrix(boxsub, inverse_rvec);
+      _get_index(nvec, inverse_rvec, Nvec);
+    }
+    else{
+      for (idx = 0; idx < 3; idx ++){
+        Nvec[idx] = nvec[idx];
+      }
+    }
     for (it = 0; it < StdI->NsiteUC; it++) {
       isite = StdI->NsiteUC * kCell + it;
-      fprintf(fp, "%5d%5d%5d%5d%5d\n", isite, nx, ny, nz, it);
+      fprintf(fp, "%5d%5d%5d%5d%5d%5d%5d%5d\n", isite, nvec[0], nvec[1], nvec[2], it, Nvec[0], Nvec[1], Nvec[2]);
     }
   }
   fclose(fp);

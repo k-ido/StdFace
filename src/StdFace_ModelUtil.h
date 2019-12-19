@@ -82,4 +82,6 @@ void StdFace_Kagome_Boost(struct StdIntList *StdI);
 void StdFace_generate_orb(struct StdIntList *StdI);
 void StdFace_Proj(struct StdIntList *StdI);
 void PrintJastrow(struct StdIntList *StdI);
+#elif defined(_UHF)
+void StdFace_InitSiteSub(struct StdIntList *StdI);
 #endif
