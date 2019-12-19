@@ -76,7 +76,7 @@ int _check_in_box(int *rvec, double inverse_matrix[][3])
   return (fabs(judge_vec[0])<= 1 && fabs(judge_vec[1])<= 1 && fabs(judge_vec[2])<= 1);
 }
 
-void _get_index(int *rvec, double inverse_matrix[][3], int *nvec)
+void _get_index(int *rvec, double inverse_matrix[][3], double *nvec)
 {
   double judge_vec[3]={};
   int i, j;
@@ -84,7 +84,7 @@ void _get_index(int *rvec, double inverse_matrix[][3], int *nvec)
     for (j = 0; j < 3; j++) {
       judge_vec[i] += rvec[j]*inverse_matrix[j][i] ;
     }
-    nvec[i] = (int)judge_vec[i];
+    nvec[i] = judge_vec[i];
   }
 }
 
@@ -563,11 +563,10 @@ enum dcmode {
 */
 void StdFace_Wannier90(
   struct StdIntList *StdI//!<[inout]
-)
-{
+) {
   int isite, jsite, ispin, ntransMax, nintrMax;
   int iL, iW, iH, kCell, it, ii;
-  double Jtmp[3][3] = { {0.0} };
+  double Jtmp[3][3] = {{0.0}};
   FILE *fp;
   double complex Cphase, DenMat0;
   double dR[3], *Uspin;
@@ -590,36 +589,37 @@ void StdFace_Wannier90(
   geometry_W90(StdI);
 
   // Set parameters to tune the strength of interactions
-  if (isnan(StdI->lambda)){ // Lambda is not defined.
+  if (isnan(StdI->lambda)) { // Lambda is not defined.
     StdFace_PrintVal_d("lambda_U", &StdI->lambda_U, 1.0);
     StdFace_PrintVal_d("lambda_J", &StdI->lambda_J, 1.0);
-  }
-  else{
-    StdFace_PrintVal_d("lambda_U",&StdI->lambda_U, StdI->lambda);
+  } else {
+    StdFace_PrintVal_d("lambda_U", &StdI->lambda_U, StdI->lambda);
     StdFace_PrintVal_d("lambda_J", &StdI->lambda_J, StdI->lambda);
   }
-  if(StdI->lambda_U < 0.0 || StdI->lambda_J < 0.0 ){
+  if (StdI->lambda_U < 0.0 || StdI->lambda_J < 0.0) {
     fprintf(stderr, "\n  Error: the value of lambda_U / lambda_J must be greater than or equal to 0. \n\n");
     StdFace_exit(-1);
   }
-  
+
   //StdFace_PrintVal_i("DoubleCounting", &StdI->double_counting, 1);
   enum dcmode idcmode;
-  if (strcmp(StdI->double_counting_mode, "none") == 0 || strcmp(StdI->double_counting_mode, "****") ==0) idcmode = NOTCORRECT;
+  if (strcmp(StdI->double_counting_mode, "none") == 0 || strcmp(StdI->double_counting_mode, "****") == 0)
+    idcmode = NOTCORRECT;
   else if (strcmp(StdI->double_counting_mode, "hartree") == 0) idcmode = HARTREE;
   else if (strcmp(StdI->double_counting_mode, "hartree_u") == 0) idcmode = HARTREE_U;
   else if (strcmp(StdI->double_counting_mode, "full") == 0) idcmode = FULL;
-  else{
-    fprintf(stderr, "\n  Error: the word of doublecounting is not correct (select from none, hartree, hartree_u, full). \n\n");
+  else {
+    fprintf(stderr,
+            "\n  Error: the word of doublecounting is not correct (select from none, hartree, hartree_u, full). \n\n");
     StdFace_exit(-1);
   }
   StdFace_PrintVal_d("alpha", &StdI->alpha, 0.5);
-  if (StdI->alpha>1.0 || StdI->alpha< 0.0){
+  if (StdI->alpha > 1.0 || StdI->alpha < 0.0) {
     fprintf(stderr, "\n  Error: the value of alpha must be in the range 0<= alpha <= 1. \n\n");
     StdFace_exit(-1);
   }
-  tUJ = (double complex **)malloc(sizeof(double complex*) * 3);
-  tUJindx = (int ***)malloc(sizeof(int**) * 3);
+  tUJ = (double complex **) malloc(sizeof(double complex *) * 3);
+  tUJindx = (int ***) malloc(sizeof(int **) * 3);
 
   /*
   Read Hopping
@@ -627,23 +627,24 @@ void StdFace_Wannier90(
   fprintf(stdout, "\n  @ Wannier90 hopping \n\n");
   StdFace_PrintVal_d("cutoff_t", &StdI->cutoff_t, 1.0e-8);
   StdFace_PrintVal_d("cutoff_length_t", &StdI->cutoff_length_t, -1.0);
-  if (StdI->W != StdI->NaN_i) StdFace_PrintVal_i("cutoff_tR[0]", &StdI->cutoff_tR[0], (int)((StdI->W-1)/2));
-  if (StdI->L != StdI->NaN_i) StdFace_PrintVal_i("cutoff_tR[1]", &StdI->cutoff_tR[1], (int)((StdI->L-1)/2));
-  if (StdI->Height != StdI->NaN_i) StdFace_PrintVal_i("cutoff_tR[2]", &StdI->cutoff_tR[2], (int)((StdI->Height-1)/2));
+  if (StdI->W != StdI->NaN_i) StdFace_PrintVal_i("cutoff_tR[0]", &StdI->cutoff_tR[0], (int) ((StdI->W - 1) / 2));
+  if (StdI->L != StdI->NaN_i) StdFace_PrintVal_i("cutoff_tR[1]", &StdI->cutoff_tR[1], (int) ((StdI->L - 1) / 2));
+  if (StdI->Height != StdI->NaN_i)
+    StdFace_PrintVal_i("cutoff_tR[2]", &StdI->cutoff_tR[2], (int) ((StdI->Height - 1) / 2));
 
   int i, j;
-  for(i = 0; i <3 ; i++) {
-    for(j = 0; j <3 ; j++) {
+  for (i = 0; i < 3; i++) {
+    for (j = 0; j < 3; j++) {
       if (StdI->box[i][j] != StdI->NaN_i)
         sprintf(tempwords, "cutoff_tVec[%d][%d]", i, j);
-        StdFace_PrintVal_d(tempwords, &StdI->cutoff_tVec[i][j], ((double)(StdI->box[i][j]) * 0.5));
+      StdFace_PrintVal_d(tempwords, &StdI->cutoff_tVec[i][j], ((double) (StdI->box[i][j]) * 0.5));
     }
   }
 
   sprintf(filename, "%s_hr.dat", StdI->CDataFileHead);
   read_W90(StdI, filename,
-    StdI->cutoff_t, StdI->cutoff_tR, StdI->cutoff_tVec, StdI->cutoff_length_t,
-     0, NtUJ, tUJindx, 1.0, tUJ);
+           StdI->cutoff_t, StdI->cutoff_tR, StdI->cutoff_tVec, StdI->cutoff_length_t,
+           0, NtUJ, tUJindx, 1.0, tUJ);
   /*
   Read Coulomb
   */
@@ -653,18 +654,18 @@ void StdFace_Wannier90(
   StdFace_PrintVal_i("cutoff_UR[0]", &StdI->cutoff_UR[0], 0);
   StdFace_PrintVal_i("cutoff_UR[1]", &StdI->cutoff_UR[1], 0);
   StdFace_PrintVal_i("cutoff_UR[2]", &StdI->cutoff_UR[2], 0);
-  for(i = 0; i <3 ; i++) {
-    for(j = 0; j <3 ; j++) {
+  for (i = 0; i < 3; i++) {
+    for (j = 0; j < 3; j++) {
       if (StdI->box[i][j] != StdI->NaN_i)
         sprintf(tempwords, "cutoff_UVec[%d][%d]", i, j);
-      StdFace_PrintVal_d(tempwords, &StdI->cutoff_UVec[i][j], ((double)(StdI->box[i][j]) * 0.5));
+      StdFace_PrintVal_d(tempwords, &StdI->cutoff_UVec[i][j], ((double) (StdI->box[i][j]) * 0.5));
     }
   }
 
   sprintf(filename, "%s_ur.dat", StdI->CDataFileHead);
   read_W90(StdI, filename,
-    StdI->cutoff_u, StdI->cutoff_UR, StdI->cutoff_UVec, StdI->cutoff_length_U,
-    1, NtUJ, tUJindx, StdI->lambda_U, tUJ);
+           StdI->cutoff_u, StdI->cutoff_UR, StdI->cutoff_UVec, StdI->cutoff_length_U,
+           1, NtUJ, tUJindx, StdI->lambda_U, tUJ);
   /*
   Read Hund
   */
@@ -674,19 +675,19 @@ void StdFace_Wannier90(
   StdFace_PrintVal_i("cutoff_JR[0]", &StdI->cutoff_JR[0], 0);
   StdFace_PrintVal_i("cutoff_JR[1]", &StdI->cutoff_JR[1], 0);
   StdFace_PrintVal_i("cutoff_JR[2]", &StdI->cutoff_JR[2], 0);
-  for(i = 0; i <3 ; i++) {
-    for(j = 0; j <3 ; j++) {
+  for (i = 0; i < 3; i++) {
+    for (j = 0; j < 3; j++) {
       if (StdI->box[i][j] != StdI->NaN_i)
         sprintf(tempwords, "cutoff_JVec[%d][%d]", i, j);
-      StdFace_PrintVal_d(tempwords, &StdI->cutoff_JVec[i][j],  ((double)(StdI->box[i][j]) * 0.5));
+      StdFace_PrintVal_d(tempwords, &StdI->cutoff_JVec[i][j], ((double) (StdI->box[i][j]) * 0.5));
     }
   }
 
 
   sprintf(filename, "%s_jr.dat", StdI->CDataFileHead);
   read_W90(StdI, filename,
-    StdI->cutoff_j, StdI->cutoff_JR, StdI->cutoff_JVec, StdI->cutoff_length_J,
-    2, NtUJ, tUJindx, StdI->lambda_J, tUJ);
+           StdI->cutoff_j, StdI->cutoff_JR, StdI->cutoff_JVec, StdI->cutoff_length_J,
+           2, NtUJ, tUJindx, StdI->lambda_J, tUJ);
   /*
   Read Density matrix
   */
@@ -702,13 +703,12 @@ void StdFace_Wannier90(
   StdFace_PrintVal_d("Gamma", &StdI->Gamma, 0.0);
   StdFace_NotUsed_d("U", StdI->U);
   /**/
-  if (strcmp(StdI->model, "spin") == 0 ) {
+  if (strcmp(StdI->model, "spin") == 0) {
     StdFace_PrintVal_i("2S", &StdI->S2, 1);
   }/*if (strcmp(StdI->model, "spin") == 0 )*/
   else if (strcmp(StdI->model, "hubbard") == 0) {
     StdFace_PrintVal_d("mu", &StdI->mu, 0.0);
-  }
-  else{
+  } else {
     printf("wannier + Kondo is not available !\n");
     StdFace_exit(-1);
   }/*if (model != "spin")*/
@@ -718,23 +718,22 @@ void StdFace_Wannier90(
   the number of sites (StdIntList::nsite)
   */
   StdI->nsite = StdI->NsiteUC * StdI->NCell;
-  StdI->locspinflag = (int *)malloc(sizeof(int) * StdI->nsite);
+  StdI->locspinflag = (int *) malloc(sizeof(int) * StdI->nsite);
   /**/
-  if(strcmp(StdI->model, "spin") == 0 )
+  if (strcmp(StdI->model, "spin") == 0)
     for (isite = 0; isite < StdI->nsite; isite++) StdI->locspinflag[isite] = StdI->S2;
-  else if(strcmp(StdI->model, "hubbard") == 0 )
+  else if (strcmp(StdI->model, "hubbard") == 0)
     for (isite = 0; isite < StdI->nsite; isite++) StdI->locspinflag[isite] = 0;
   /**@brief
   (4) Compute the upper limit of the number of Transfer & Interaction and malloc them.
   */
-  if (strcmp(StdI->model, "spin") == 0 ) {
+  if (strcmp(StdI->model, "spin") == 0) {
     ntransMax = StdI->nsite * (StdI->S2 + 1/*h*/ + 2 * StdI->S2/*Gamma*/);
     nintrMax = StdI->NCell * (StdI->NsiteUC/*D*/ + NtUJ[0]/*J*/ + NtUJ[1] + NtUJ[2])
-      * (3 * StdI->S2 + 1) * (3 * StdI->S2 + StdI->NsiteUC);
-  }
-  else if (strcmp(StdI->model, "hubbard") == 0) {
+               * (3 * StdI->S2 + 1) * (3 * StdI->S2 + StdI->NsiteUC);
+  } else if (strcmp(StdI->model, "hubbard") == 0) {
     ntransMax = StdI->NCell * 2/*spin*/ * (2 * StdI->NsiteUC/*mu+h+Gamma*/ + NtUJ[0] * 2/*t*/
-      + NtUJ[1] * 2 * 3/*DC(U)*/ + NtUJ[2] * 2 * 2/*DC(J)*/);
+                                           + NtUJ[1] * 2 * 3/*DC(U)*/ + NtUJ[2] * 2 * 2/*DC(J)*/);
     nintrMax = StdI->NCell * (NtUJ[1] + NtUJ[2] + StdI->NsiteUC);
   }
   /**/
@@ -743,16 +742,16 @@ void StdFace_Wannier90(
   (4.5) For spin system, compute super exchange interaction.
   */
   if (strcmp(StdI->model, "spin") == 0) {
-    Uspin = (double *)malloc(sizeof(double) * StdI->NsiteUC);
+    Uspin = (double *) malloc(sizeof(double) * StdI->NsiteUC);
     for (it = 0; it < NtUJ[1]; it++)
       if (tUJindx[1][it][0] == 0 && tUJindx[1][it][1] == 0 && tUJindx[1][it][2] == 0
-        && tUJindx[1][it][3] == tUJindx[1][it][4])     
+          && tUJindx[1][it][3] == tUJindx[1][it][4])
         Uspin[tUJindx[1][it][3]] = creal(tUJ[1][it]);
   }/*if (strcmp(StdI->model, "spin") == 0)*/
   /**@brief
   (5) Set Transfer & Interaction
   */
-  for (kCell = 0; kCell < StdI->NCell; kCell++){
+  for (kCell = 0; kCell < StdI->NCell; kCell++) {
     /**/
     iW = StdI->Cell[kCell][0];
     iL = StdI->Cell[kCell][1];
@@ -761,12 +760,12 @@ void StdFace_Wannier90(
      Local term 1
     */
     if (strcmp(StdI->model, "spin") == 0) {
-      for (isite = StdI->NsiteUC*kCell; isite < StdI->NsiteUC*(kCell + 1); isite++) {
+      for (isite = StdI->NsiteUC * kCell; isite < StdI->NsiteUC * (kCell + 1); isite++) {
         StdFace_MagField(StdI, StdI->S2, -StdI->h, -StdI->Gamma, isite);
       }
     }/*if (strcmp(StdI->model, "spin") == 0 )*/
     else {
-      for (isite = StdI->NsiteUC*kCell; isite < StdI->NsiteUC*(kCell + 1); isite++) {
+      for (isite = StdI->NsiteUC * kCell; isite < StdI->NsiteUC * (kCell + 1); isite++) {
         StdFace_HubbardLocal(StdI, StdI->mu, -StdI->h, -StdI->Gamma, 0.0, isite);
       }
     }/*if (strcmp(StdI->model, "spin") != 0 )*/
@@ -778,10 +777,9 @@ void StdFace_Wannier90(
        Local term
       */
       if (tUJindx[0][it][0] == 0 && tUJindx[0][it][1] == 0 && tUJindx[0][it][2] == 0
-        && tUJindx[0][it][3] == tUJindx[0][it][4])
-      {
+          && tUJindx[0][it][3] == tUJindx[0][it][4]) {
         if (strcmp(StdI->model, "hubbard") == 0) {
-          isite = StdI->NsiteUC*kCell + tUJindx[0][it][3];
+          isite = StdI->NsiteUC * kCell + tUJindx[0][it][3];
           for (ispin = 0; ispin < 2; ispin++) {
             StdI->trans[StdI->ntrans] = -tUJ[0][it];
             StdI->transindx[StdI->ntrans][0] = isite;
@@ -797,16 +795,16 @@ void StdFace_Wannier90(
          Non-local term
         */
         StdFace_FindSite(StdI, iW, iL, iH,
-          tUJindx[0][it][0], tUJindx[0][it][1], tUJindx[0][it][2],
-          tUJindx[0][it][3], tUJindx[0][it][4], &isite, &jsite, &Cphase, dR);
+                         tUJindx[0][it][0], tUJindx[0][it][1], tUJindx[0][it][2],
+                         tUJindx[0][it][3], tUJindx[0][it][4], &isite, &jsite, &Cphase, dR);
         if (strcmp(StdI->model, "spin") == 0) {
-          for (ii = 0; ii < 3; ii++) 
+          for (ii = 0; ii < 3; ii++)
             Jtmp[ii][ii] = 2.0 * tUJ[0][it] * conj(tUJ[0][it])
-            * (1.0 / Uspin[tUJindx[0][it][3]] + 1.0 / Uspin[tUJindx[0][it][4]]);
+                           * (1.0 / Uspin[tUJindx[0][it][3]] + 1.0 / Uspin[tUJindx[0][it][4]]);
           StdFace_GeneralJ(StdI, Jtmp, StdI->S2, StdI->S2, isite, jsite);
         }/*if (strcmp(StdI->model, "spin") == 0 )*/
         else {
-          StdFace_Hopping(StdI, - Cphase * tUJ[0][it], jsite, isite, dR);
+          StdFace_Hopping(StdI, -Cphase * tUJ[0][it], jsite, isite, dR);
         }
       }/*Non-local term*/
     }/*for (it = 0; it < NtUJ[0]; it++)*/
@@ -818,20 +816,19 @@ void StdFace_Wannier90(
       Local term
       */
       if (tUJindx[1][it][0] == 0 && tUJindx[1][it][1] == 0 && tUJindx[1][it][2] == 0
-        && tUJindx[1][it][3] == tUJindx[1][it][4])
-      {
+          && tUJindx[1][it][3] == tUJindx[1][it][4]) {
         StdI->Cintra[StdI->NCintra] = creal(tUJ[1][it]);
-        StdI->CintraIndx[StdI->NCintra][0] = StdI->NsiteUC*kCell + tUJindx[1][it][3];
+        StdI->CintraIndx[StdI->NCintra][0] = StdI->NsiteUC * kCell + tUJindx[1][it][3];
         StdI->NCintra += 1;
         /*
         Double-counting correction @f$0.5 U_{0ii} D_{0ii}@f$
         */
         //if (StdI->double_counting == 1) {
         if (idcmode != NOTCORRECT) { //Hartree or Hartree-Fock correction
-          isite = StdI->NsiteUC*kCell + tUJindx[1][it][3];
+          isite = StdI->NsiteUC * kCell + tUJindx[1][it][3];
           for (ispin = 0; ispin < 2; ispin++) {
             DenMat0 = DenMat[0][0][0][tUJindx[1][it][3]][tUJindx[1][it][3]];
-            StdI->trans[StdI->ntrans] = StdI->alpha*creal(tUJ[1][it])*DenMat0;
+            StdI->trans[StdI->ntrans] = StdI->alpha * creal(tUJ[1][it]) * DenMat0;
             StdI->transindx[StdI->ntrans][0] = isite;
             StdI->transindx[StdI->ntrans][1] = ispin;
             StdI->transindx[StdI->ntrans][2] = isite;
@@ -845,8 +842,8 @@ void StdFace_Wannier90(
         Non-local term
         */
         StdFace_FindSite(StdI, iW, iL, iH,
-          tUJindx[1][it][0], tUJindx[1][it][1], tUJindx[1][it][2],
-          tUJindx[1][it][3], tUJindx[1][it][4], &isite, &jsite, &Cphase, dR);
+                         tUJindx[1][it][0], tUJindx[1][it][1], tUJindx[1][it][2],
+                         tUJindx[1][it][3], tUJindx[1][it][4], &isite, &jsite, &Cphase, dR);
         StdFace_Coulomb(StdI, creal(tUJ[1][it]), isite, jsite);
         /*
         Double-counting correction
@@ -858,7 +855,7 @@ void StdFace_Wannier90(
             @f$sum_{(R,j)(>0,i)} U_{Rij} D_{0jj} (Local)@f$
             */
             DenMat0 = DenMat[0][0][0][tUJindx[1][it][4]][tUJindx[1][it][4]];
-            StdI->trans[StdI->ntrans] = creal(tUJ[1][it])*DenMat0;
+            StdI->trans[StdI->ntrans] = creal(tUJ[1][it]) * DenMat0;
             StdI->transindx[StdI->ntrans][0] = isite;
             StdI->transindx[StdI->ntrans][1] = ispin;
             StdI->transindx[StdI->ntrans][2] = isite;
@@ -868,7 +865,7 @@ void StdFace_Wannier90(
             @f$sum_{(R,j)(>0,i)} U_{Rij} D_{0jj} (Local)@f$
             */
             DenMat0 = DenMat[0][0][0][tUJindx[1][it][3]][tUJindx[1][it][3]];
-            StdI->trans[StdI->ntrans] = creal(tUJ[1][it])*DenMat0;
+            StdI->trans[StdI->ntrans] = creal(tUJ[1][it]) * DenMat0;
             StdI->transindx[StdI->ntrans][0] = jsite;
             StdI->transindx[StdI->ntrans][1] = ispin;
             StdI->transindx[StdI->ntrans][2] = jsite;
@@ -878,7 +875,7 @@ void StdFace_Wannier90(
           /*
           @f$-0.5U_{Rij} D_{Rjj}@f$
           */
-          if(idcmode == FULL) { //Hartree-Forck correction
+          if (idcmode == FULL) { //Hartree-Forck correction
             DenMat0 = DenMat[tUJindx[1][it][0]][tUJindx[1][it][1]][tUJindx[1][it][2]]
             [tUJindx[1][it][3]][tUJindx[1][it][4]];
             StdFace_Hopping(StdI, -0.5 * Cphase * creal(tUJ[1][it]) * DenMat0, jsite, isite, dR);
@@ -894,11 +891,10 @@ void StdFace_Wannier90(
       Local term should not be computed
       */
       if (tUJindx[2][it][0] != 0 || tUJindx[2][it][1] != 0 || tUJindx[2][it][2] != 0
-        || tUJindx[2][it][3] != tUJindx[2][it][4])
-      {
+          || tUJindx[2][it][3] != tUJindx[2][it][4]) {
         StdFace_FindSite(StdI, iW, iL, iH,
-          tUJindx[2][it][0], tUJindx[2][it][1], tUJindx[2][it][2],
-          tUJindx[2][it][3], tUJindx[2][it][4], &isite, &jsite, &Cphase, dR);
+                         tUJindx[2][it][0], tUJindx[2][it][1], tUJindx[2][it][2],
+                         tUJindx[2][it][3], tUJindx[2][it][4], &isite, &jsite, &Cphase, dR);
 
         StdI->Hund[StdI->NHund] = creal(tUJ[2][it]);
         StdI->HundIndx[StdI->NHund][0] = isite;
@@ -925,7 +921,7 @@ void StdFace_Wannier90(
               @f$- \frac{1}{2}sum_{(R,j)(>0,i)} J_{Rij} D_{0jj}@f$
               */
               DenMat0 = DenMat[0][0][0][tUJindx[2][it][4]][tUJindx[2][it][4]];
-              StdI->trans[StdI->ntrans] = -(1.0-StdI->alpha)*creal(tUJ[2][it]) *DenMat0;
+              StdI->trans[StdI->ntrans] = -(1.0 - StdI->alpha) * creal(tUJ[2][it]) * DenMat0;
               StdI->transindx[StdI->ntrans][0] = isite;
               StdI->transindx[StdI->ntrans][1] = ispin;
               StdI->transindx[StdI->ntrans][2] = isite;
@@ -935,7 +931,7 @@ void StdFace_Wannier90(
               @f$- \frac{1}{2}sum_{(R,j)(>0,i)} J_{Rij} D_{0jj}@f$
               */
               DenMat0 = DenMat[0][0][0][tUJindx[2][it][3]][tUJindx[2][it][3]];
-              StdI->trans[StdI->ntrans] = -(1.0-StdI->alpha)*creal(tUJ[2][it]) *DenMat0;
+              StdI->trans[StdI->ntrans] = -(1.0 - StdI->alpha) * creal(tUJ[2][it]) * DenMat0;
               StdI->transindx[StdI->ntrans][0] = jsite;
               StdI->transindx[StdI->ntrans][1] = ispin;
               StdI->transindx[StdI->ntrans][2] = jsite;
@@ -945,15 +941,14 @@ void StdFace_Wannier90(
             /*
             @f$J_{Rij} (D_{Rjj}+2{\rm Re}[D_{Rjj])@f$
             */
-            if(idcmode == FULL) { //Hartree-Forck correction
+            if (idcmode == FULL) { //Hartree-Forck correction
               DenMat0 = DenMat[tUJindx[2][it][0]][tUJindx[2][it][1]][tUJindx[2][it][2]]
               [tUJindx[2][it][3]][tUJindx[2][it][4]];
               StdFace_Hopping(StdI,
                               0.5 * Cphase * creal(tUJ[2][it]) * (DenMat0 + 2.0 * creal(DenMat0)), jsite, isite, dR);
             }
           }/*if (StdI->double_counting == 1)*/
-        }
-        else {
+        } else {
 #if defined(_mVMC)
           StdI->Ex[StdI->NEx] = creal(tUJ[2][it]);
 #else
@@ -977,26 +972,32 @@ void StdFace_Wannier90(
   free(tUJ[0]);
   for (it = 0; it < NtUJ[1]; it++) free(tUJindx[1][it]);
   free(tUJindx[1]);
-  free(tUJ[1]); 
+  free(tUJ[1]);
   for (it = 0; it < NtUJ[2]; it++) free(tUJindx[2][it]);
   free(tUJindx[2]);
-  free(tUJ[2]); 
+  free(tUJ[2]);
   if (strcmp(StdI->model, "spin") == 0) free(Uspin);
 
   fp = fopen("wan2site.dat", "w");
   fprintf(fp, "======================== \n");
-  fprintf(fp, "Total site number %7d  \n", StdI->NCell*StdI->NsiteUC);
+  fprintf(fp, "Total site number %7d  \n", StdI->NCell * StdI->NsiteUC);
   fprintf(fp, "======================== \n");
   fprintf(fp, "========site nx ny nz norb====== \n");
   fprintf(fp, "======================== \n");
 
   int idx = 0, jdx = 0;
+  int Ncell = StdI->NCell;
   int nvec[3] = {};
-  int Nvec[3] = {};
-  double inverse_rvec[3][3] = {{},{}};
-  double boxsub[3][3]={{},{}};
+  double *Ndvec = d_1d_allocate(3);
+  int **Nvec = i_2d_allocate(StdI->NCell, 3);
+  double **Nrvec = d_2d_allocate(StdI->NCell, 3);
+  int *Norbit = i_1d_allocate(StdI->NCell);
+  double inverse_rvec[3][3] = {{},
+                               {}};
+  double boxsub[3][3] = {{},
+                         {}};
   int iflg_sub = 0;
-
+  int orbital_number = 0;
   //cast from int to double
   StdFace_InitSiteSub(StdI);
   if (StdI->boxsub[0][0] != StdI->NaN_i) {
@@ -1008,22 +1009,82 @@ void StdFace_Wannier90(
     }
   }
 
+  for (kCell = 0; kCell < StdI->NCell; kCell++) {
+    for (idx = 0; idx < 3; idx++) {
+      nvec[idx] = StdI->Cell[kCell][idx];
+    }
+    if (iflg_sub == 1) {
+      _calc_inverse_matrix(boxsub, inverse_rvec);
+      _get_index(nvec, inverse_rvec, Ndvec);
+      for (idx = 0; idx < 3; idx++) {
+        Nvec[kCell][idx] = (int) Ndvec[idx];
+        Nrvec[kCell][idx] = Ndvec[idx] - Nvec[kCell][idx];
+      }
+    }
+    else{
+      for (idx = 0; idx < 3; idx ++){
+        Nvec[kCell][idx] = nvec[idx];
+        Norbit[kCell] = 0;
+      }
+    }
+  }
+
+  //Get Norbit_idx_original
+  if (iflg_sub == 1) {
+
+    //Get supercell orbit number
+    int Norbit_max = 0;
+    for (kCell = 0; kCell < StdI->NCell; kCell++) {
+      if (Nvec[kCell][0] == 0 && Nvec[kCell][1] == 0 && Nvec[kCell][2] == 0) {
+        Norbit_max++;
+      }
+    }
+    //Store posision of wannier orbitals in supercell
+    double **Norbitr_old = d_2d_allocate(Norbit_max, 3);
+    int Norbit_count = 0;
+    int kCell_before = 0;
+    int iflg = 0;
+    for (kCell = 0; kCell < StdI->NCell; kCell++){
+      if (Nvec[kCell][0] == 0 && Nvec[kCell][1] == 0 && Nvec[kCell][2] == 0) {
+        iflg = 0;
+        for (kCell_before = 0; kCell_before < kCell; kCell_before++) {
+          if (fabs(Nrvec[kCell][0] - Nrvec[kCell_before][0]) < 1e-8
+              && fabs(Nrvec[kCell][1] - Nrvec[kCell_before][1]) < 1e-8
+              && fabs(Nrvec[kCell][2] - Nrvec[kCell_before][2]) < 1e-8) {
+            iflg = 1;
+            break;
+          }
+        }
+        if (iflg == 0) {
+          for (idx = 0; idx < 3; idx++) {
+            Norbitr_old[Norbit_count][idx] = Nrvec[kCell][idx];
+          }
+          Norbit_count++;
+          continue;
+        }
+      }
+      if (Norbit_count == Norbit_max - 1) break;
+    }
+
+    for (kCell = 0; kCell < StdI->NCell; kCell++) {
+      for (Norbit_count = 0; Norbit_count < Norbit_max; Norbit_count++) {
+        if (fabs(Nrvec[kCell][0] - Norbitr_old[Norbit_count][0]) < 1e-8
+            && fabs(Nrvec[kCell][1] - Norbitr_old[Norbit_count][1]) < 1e-8
+            && fabs(Nrvec[kCell][2] - Norbitr_old[Norbit_count][2]) < 1e-8) {
+          Norbit[kCell] = Norbit_count;
+        }
+      }
+    }
+  }
+
   for (kCell = 0 ; kCell < StdI->NCell; kCell++) {
     for (idx = 0; idx < 3; idx ++){
       nvec[idx] = StdI->Cell[kCell][idx];
     }
-    if(iflg_sub == 1) {
-      _calc_inverse_matrix(boxsub, inverse_rvec);
-      _get_index(nvec, inverse_rvec, Nvec);
-    }
-    else{
-      for (idx = 0; idx < 3; idx ++){
-        Nvec[idx] = nvec[idx];
-      }
-    }
     for (it = 0; it < StdI->NsiteUC; it++) {
       isite = StdI->NsiteUC * kCell + it;
-      fprintf(fp, "%5d%5d%5d%5d%5d%5d%5d%5d\n", isite, nvec[0], nvec[1], nvec[2], it, Nvec[0], Nvec[1], Nvec[2]);
+      orbital_number = StdI->NsiteUC * Norbit[kCell] + it;
+      fprintf(fp, "%5d%5d%5d%5d%5d%5d%5d%5d%5d\n", isite, nvec[0], nvec[1], nvec[2], it, Nvec[kCell][0], Nvec[kCell][1], Nvec[kCell][2], orbital_number);
     }
   }
   fclose(fp);
