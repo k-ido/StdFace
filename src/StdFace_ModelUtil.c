@@ -61,6 +61,7 @@ void StdFace_trans(
   int jspin//!<[in] @f$\sigma'@f$ for @f$c_{j \sigma'}@f$
 )
 {
+  if (cabs(trans0) < 1.0e-12) return;
   StdI->trans[StdI->ntrans] = trans0;
   StdI->transindx[StdI->ntrans][0] = isite;
   StdI->transindx[StdI->ntrans][1] = ispin;
@@ -131,8 +132,8 @@ void StdFace_HubbardLocal(
   int isite//!<[in] i for @f$c_{i \sigma}^\dagger@f$
 )
 {
-  StdFace_trans(StdI, mu0 + 0.5 * h0, isite, 0, isite, 0);
-  StdFace_trans(StdI, mu0 - 0.5 * h0, isite, 1, isite, 1);
+  StdFace_trans(StdI, mu0 - 0.5 * h0, isite, 0, isite, 0);
+  StdFace_trans(StdI, mu0 + 0.5 * h0, isite, 1, isite, 1);
   StdFace_trans(StdI, -0.5 * Gamma0, isite, 1, isite, 0);
   StdFace_trans(StdI, -0.5 * Gamma0, isite, 0, isite, 1);
   /**@brief
@@ -170,7 +171,7 @@ void StdFace_MagField(
      \sum_{\sigma = -S}^{S} -h\sigma c_{i \sigma}^\dagger c_{i \sigma}
     @f]
     */
-    Sz = (double)ispin - S;
+    Sz = S - (double)ispin;
     StdFace_trans(StdI, -h * Sz, isite, ispin, isite, ispin);
     /**@brief
     Transvars part
@@ -182,11 +183,11 @@ void StdFace_MagField(
     \sigma c_{i \sigma}^\dagger c_{i \sigma+1})
     @f]
     */
-    if (ispin < S2) {
+    if (ispin > 0) {
       StdFace_trans(StdI, -0.5 * Gamma * sqrt(S*(S + 1.0) - Sz*(Sz + 1.0)),
-        isite, ispin + 1, isite, ispin);
+        isite, ispin, isite, ispin - 1);
       StdFace_trans(StdI, -0.5 * Gamma * sqrt(S*(S + 1.0) - Sz*(Sz + 1.0)),
-        isite, ispin, isite, ispin + 1);
+        isite, ispin - 1, isite, ispin);
     }/*if (ispin < S2)*/
   }/*for (ispin = 0; ispin <= S2; ispin++)*/
 }/*void StdFace_MagField*/
@@ -209,6 +210,7 @@ void StdFace_intr(
   int spin4//!<[in] @f$sigma1_2@f$ for @f$c_{i_2 \sigma_2}@f$
 )
 {
+  if (cabs(intr0) < 1.0e-12) return;
   StdI->intr[StdI->nintr] = intr0;
   StdI->intrindx[StdI->nintr][0] = site1; StdI->intrindx[StdI->nintr][1] = spin1;
   StdI->intrindx[StdI->nintr][2] = site2; StdI->intrindx[StdI->nintr][3] = spin2;
@@ -295,9 +297,9 @@ struct StdIntList *StdI,//!<[inout]
   Sj = 0.5 * (double)Sj2;
 
   for (ispin = 0; ispin <= Si2; ispin++) {
-    Siz = (double)ispin - Si;
+    Siz = Si - (double)ispin;
     for (jspin = 0; jspin <= Sj2; jspin++) {
-      Sjz = (double)jspin - Sj;
+      Sjz = Sj - (double)jspin;
       /**@brief (1)
        @f[
        J_z S_{i z} * S_{j z} = J_z \sum_{\sigma, \sigma' = -S}^S
@@ -321,14 +323,14 @@ struct StdIntList *StdI,//!<[inout]
       I \equiv \frac{J_x + J_y + i(J_{xy} - J_{yx})}{4}
       @f]
       */
-      if ((ispin < Si2 && jspin < Sj2) && ExGeneral == 1) {
+      if ((ispin > 0 && jspin > 0) && ExGeneral == 1) {
         intr0 = 0.25 * (J[0][0] + J[1][1] + I*(J[0][1] - J[1][0]))
           * sqrt(Si * (Si + 1.0) - Siz * (Siz + 1.0))
           * sqrt(Sj * (Sj + 1.0) - Sjz * (Sjz + 1.0));
         StdFace_intr(StdI, intr0,
-          isite, ispin + 1, isite, ispin, jsite, jspin, jsite, jspin + 1);
+          isite, ispin - 1, isite, ispin, jsite, jspin, jsite, jspin - 1);
         StdFace_intr(StdI, conj(intr0),
-          isite, ispin, isite, ispin + 1, jsite, jspin + 1, jsite, jspin);
+          isite, ispin, isite, ispin - 1, jsite, jspin - 1, jsite, jspin);
       }
       /**@brief (3)
       @f[
@@ -341,14 +343,14 @@ struct StdIntList *StdI,//!<[inout]
       I \equiv \frac{J_x - J_y - i(J_{xy} + J_{yx})}{4}
       @f]
       */
-      if ((ispin < Si2 && jspin < Sj2) && ExGeneral == 1) {
+      if ((ispin > 0 && jspin > 0) && ExGeneral == 1) {
         intr0 = 0.5 * 0.5 * (J[0][0] - J[1][1] - I*(J[0][1] + J[1][0]))
           * sqrt(Si * (Si + 1.0) - Siz * (Siz + 1.0))
           * sqrt(Sj * (Sj + 1.0) - Sjz * (Sjz + 1.0));
         StdFace_intr(StdI, intr0,
-          isite, ispin + 1, isite, ispin, jsite, jspin + 1, jsite, jspin);
+          isite, ispin - 1, isite, ispin, jsite, jspin - 1, jsite, jspin);
         StdFace_intr(StdI, conj(intr0),
-          isite, ispin, isite, ispin + 1, jsite, jspin, jsite, jspin + 1);
+          isite, ispin, isite, ispin - 1, jsite, jspin, jsite, jspin - 1);
       }
       /**@brief (4)
       @f[
@@ -360,12 +362,12 @@ struct StdIntList *StdI,//!<[inout]
       I \equiv \frac{J_{xz} - i J_{yz}}{2}
       @f]
       */
-      if (ispin < Si2) {
+      if (ispin > 0) {
         intr0 = 0.5 * (J[0][2] - I * J[1][2]) * sqrt(Si * (Si + 1.0) - Siz * (Siz + 1.0)) * Sjz;
         StdFace_intr(StdI, intr0,
-          isite, ispin + 1, isite, ispin, jsite, jspin, jsite, jspin);
+          isite, ispin - 1, isite, ispin, jsite, jspin, jsite, jspin);
         StdFace_intr(StdI, conj(intr0),
-          jsite, jspin, jsite, jspin, isite, ispin, isite, ispin + 1);
+          jsite, jspin, jsite, jspin, isite, ispin, isite, ispin - 1);
       }/*if (ispin < Si2)*/
       /**@brief (5)
       @f[
@@ -377,12 +379,12 @@ struct StdIntList *StdI,//!<[inout]
        I \equiv \frac{J_{zx} - i J_{zy}}{2}
        @f]
       */
-      if (jspin < Sj2) {
+      if (jspin > 0) {
         intr0 = 0.5 * (J[2][0] - I * J[2][1]) * Siz * sqrt(Sj * (Sj + 1.0) - Sjz * (Sjz + 1.0));
         StdFace_intr(StdI, intr0,
-          isite, ispin, isite, ispin, jsite, jspin + 1, jsite, jspin);
+          isite, ispin, isite, ispin, jsite, jspin - 1, jsite, jspin);
         StdFace_intr(StdI, conj(intr0),
-          jsite, jspin, jsite, jspin + 1, isite, ispin, isite, ispin);
+          jsite, jspin, jsite, jspin - 1, isite, ispin, isite, ispin);
       }/*if (jspin < Sj2)*/
     }/*for (jspin = 0; jspin <= Sj2; jspin++)*/
   }/*for (ispin = 0; ispin <= Si2; ispin++)*/
