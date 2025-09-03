@@ -357,6 +357,8 @@ struct StdIntList {
   int NSPStot;/**<@brief */
   int NStore;/**<@brief */
   int NSRCG;/**<@brief */
+  int useDiagScale;/**<@brief */
+  int RescaleSmat;/**<@brief */
   int ComplexType;/**<@brief */
   /*
    Sub-lattice

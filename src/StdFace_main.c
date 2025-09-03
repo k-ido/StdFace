@@ -1096,6 +1096,8 @@ static void StdFace_ResetVals(struct StdIntList *StdI) {
   StdI->NSplitSize = StdI->NaN_i;
   StdI->NStore = StdI->NaN_i;
   StdI->NSRCG = StdI->NaN_i;
+  StdI->useDiagScale = StdI->NaN_i;
+  StdI->RescaleSmat = StdI->NaN_i;
   StdI->ComplexType = StdI->NaN_i;
   for (i = 0; i < 3; i++)
     for (j = 0; j < 3; j++)
@@ -1505,6 +1507,8 @@ static void PrintModPara(struct StdIntList *StdI)
   fprintf(fp, "NSplitSize     %d\n", StdI->NSplitSize);
   fprintf(fp, "NStore         %d\n", StdI->NStore);
   fprintf(fp, "NSRCG          %d\n", StdI->NSRCG);
+  if (StdI->useDiagScale != 0) fprintf(fp, "useDiagScale   %d\n", StdI->useDiagScale);
+  if (StdI->RescaleSmat != 0)  fprintf(fp, "RescaleSmat    %d\n", StdI->RescaleSmat);
 #elif defined(_UHF)
   fprintf(fp, "UHF_Cal_Parameters\n");
   fprintf(fp, "--------------------\n");
@@ -1950,6 +1954,8 @@ static void CheckModPara(struct StdIntList *StdI)
   StdFace_PrintVal_i("NSplitSize", &StdI->NSplitSize, 1);
   StdFace_PrintVal_i("NStore", &StdI->NStore, 1);
   StdFace_PrintVal_i("NSRCG", &StdI->NSRCG, 0);
+  StdFace_PrintVal_i("useDiagScale", &StdI->useDiagScale, 0);
+  StdFace_PrintVal_i("RescaleSmat", &StdI->RescaleSmat, 0);
 
   StdFace_PrintVal_d("DSROptRedCut", &StdI->DSROptRedCut, 0.001);
   StdFace_PrintVal_d("DSROptStaDel", &StdI->DSROptStaDel, 0.02);
@@ -2797,6 +2803,8 @@ void StdFace_main(
     else if (strcmp(keyword, "nsroptitrstep") == 0) StoreWithCheckDup_i(keyword, value, &StdI->NSROptItrStep);
     else if (strcmp(keyword, "nstore") == 0) StoreWithCheckDup_i(keyword, value, &StdI->NStore);
     else if (strcmp(keyword, "nsrcg") == 0) StoreWithCheckDup_i(keyword, value, &StdI->NSRCG);
+    else if (strcmp(keyword, "usediagscale") == 0) StoreWithCheckDup_i(keyword, value, &StdI->useDiagScale);
+    else if (strcmp(keyword, "rescalesmat") == 0) StoreWithCheckDup_i(keyword, value, &StdI->RescaleSmat);
     else if (strcmp(keyword, "nvmcinterval") == 0) StoreWithCheckDup_i(keyword, value, &StdI->NVMCInterval);
     else if (strcmp(keyword, "nvmcsample") == 0) StoreWithCheckDup_i(keyword, value, &StdI->NVMCSample);
     else if (strcmp(keyword, "nvmcwarmup") == 0) StoreWithCheckDup_i(keyword, value, &StdI->NVMCWarmUp);
